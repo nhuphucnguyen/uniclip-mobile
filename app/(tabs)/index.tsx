@@ -6,7 +6,10 @@ import {
   RefreshControl,
   Text,
   StatusBar,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import ClipboardItem from '../../src/components/ClipboardItem';
 
 const API_URL = 'http://192.168.1.7:8080/api/clipboard';
@@ -25,6 +28,37 @@ export default function TabOneScreen() {
   const [items, setItems] = useState<ClipboardItemType[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastClipboardContent, setLastClipboardContent] = useState<string>('');
+
+  const checkClipboard = async () => {
+    try {
+      const content = await Clipboard.getStringAsync();
+      if (content && content !== lastClipboardContent) {
+        setLastClipboardContent(content);
+        // Send to server
+        await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'TEXT',
+            textContent: content,
+          }),
+        });
+        // Refresh the list
+        fetchClipboardItems();
+      }
+    } catch (err) {
+      console.error('Error checking clipboard:', err);
+    }
+  };
+
+  const handleAppStateChange = (nextAppState: AppStateStatus) => {
+    if (nextAppState === 'active') {
+      checkClipboard();
+    }
+  };
 
   const fetchClipboardItems = async () => {
     try {
@@ -46,9 +80,23 @@ export default function TabOneScreen() {
 
   useEffect(() => {
     fetchClipboardItems();
-    const interval = setInterval(fetchClipboardItems, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    checkClipboard();
+
+    // Set up clipboard monitoring
+    const clipboardInterval = setInterval(checkClipboard, 1000);
+    
+    // Set up app state monitoring
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    // Set up items refresh
+    const fetchInterval = setInterval(fetchClipboardItems, 2000);
+
+    return () => {
+      clearInterval(clipboardInterval);
+      clearInterval(fetchInterval);
+      subscription.remove();
+    };
+  }, [lastClipboardContent]);
 
   return (
     <View style={styles.container}>
