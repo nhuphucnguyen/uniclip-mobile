@@ -7,24 +7,14 @@ import {
   Text,
   StatusBar,
 } from 'react-native';
-import ClipboardItem from '../../src/components/ClipboardItem';
+import ClipboardItem from '../components/ClipboardItem';
 
 const API_URL = 'http://192.168.1.7:8080/api/clipboard';
 
-interface ClipboardItemType {
-  id: number;
-  type: 'TEXT' | 'IMAGE';
-  textContent?: string;
-  base64BinaryContent?: string;
-  contentHash: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export default function TabOneScreen() {
-  const [items, setItems] = useState<ClipboardItemType[]>([]);
+const HomeScreen = () => {
+  const [items, setItems] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   const fetchClipboardItems = async () => {
     try {
@@ -68,7 +58,7 @@ export default function TabOneScreen() {
       />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -94,3 +84,5 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
 });
+
+export default HomeScreen; 
